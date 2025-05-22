@@ -23,7 +23,8 @@ let Camera = {
     },
 
     get screenSpace(){
-        return new vec2(Math2.rot(this.real.x, this.real.z, this.rotation), this.real.y);
+        let localRot = Math2.rot(this.real.x, this.real.z, this.rotation);
+        return {x : localRot.x, y : this.real.y};
     },
 
     step : 0,

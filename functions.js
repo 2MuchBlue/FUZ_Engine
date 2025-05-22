@@ -18,7 +18,7 @@ function drawImg( region, x, y, w = -1, h = -1, context = ctx ){
         h = region.h;
     }
 
-    ctx.drawImage(Sheet, region.x, region.y, region.w, region.h, x + region.offsetX, y + region.offsetY, w, h);
+    context.drawImage(Sheet, region.x, region.y, region.w, region.h, x + region.offsetX, y + region.offsetY, w, h);
 }
 
 let Players = [
@@ -160,6 +160,8 @@ function gameUpdate(){
         }
     }
 
+    ctx.fillText(`Camera: ${Camera.x}, ${Camera.y}, ${Camera.z}`, 16, 190);
+
     // Backdrop Paralax Effect
     canvasElement.style.backgroundPosition = `${ Camera.real.x * -0.5 }px ${ Camera.real.y * -0.5 }px`;
     
@@ -185,9 +187,9 @@ function drawTileRegion(x, y, regionObj, context = ctx, useCamera = true ){
     if(Array.isArray(regionObj.region)){
         //console.log(Math.round((Time.now - Time.launchTime) * 0.01) % region.length);
         let reginThisFrame = regionObj.region[Math.round((Time.now - Time.launchTime) * regionObj.speed) % regionObj.region.length];
-        drawImg(reginThisFrame, (x) - (useCamera ? Camera.x : 0), (y) - (useCamera ? Camera.y : 0), reginThisFrame.w, reginThisFrame.h, context);
+        drawImg(reginThisFrame, (x), (y), reginThisFrame.w, reginThisFrame.h, context);
     }else{
-        drawImg(regionObj.region, (x) - (useCamera ? Camera.x : 0), (y) - (useCamera ? Camera.y : 0), regionObj.region.w, regionObj.region.h, context);
+        drawImg(regionObj.region, (x), (y), regionObj.region.w, regionObj.region.h, context);
     }
 }
 
@@ -236,8 +238,9 @@ function drawLoadedBlocks(){
         //ctx.fillStyle = `rgb(${sortedBlocks[i].camSpace.y}, ${sortedBlocks[i].camSpace.y}, ${sortedBlocks[i].camSpace.y}, 0.5)`;
         drawTileRegion(
             Math.round(sortedBlocks[i].camSpace.x + canvasHalfWidth),
-            Math.round(sortedBlocks[i].y - Camera.y + canvasHalfHeight),
+            Math.round(sortedBlocks[i].y + canvasHalfHeight),
             sortedBlocks[i].sprite,
+            ctx,
             false
         );
         //ctx.fillRect(Math.round(sortedBlocks[i].camSpace.x + canvasHalfWidth),
@@ -247,6 +250,7 @@ function drawLoadedBlocks(){
             Math.round(sortedBlocks[i].camSpace.x + canvasHalfWidth),
             Math.round(sortedBlocks[i].camSpace.y + canvasHalfHeight * 4),
             sortedBlocks[i].sprite,
+            ctx,
             false
         );
     }
