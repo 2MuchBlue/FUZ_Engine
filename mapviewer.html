@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speedy Metroidvania Map Viewer</title>
+</head>
+<body>
+    <style>
+        body {
+            background-color: #1d0435;
+            margin: 0px;
+            color: aliceblue;
+
+            box-sizing: border-box;
+        }
+
+        .editorHolder {
+            display: grid;
+            grid-template-areas: 
+            "main main mapSelect"
+            "main main tiles"
+            "entities entities tiles"
+            "data data tiles"
+            "links info info";
+
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 0fr 300px 200px 0fr 0fr;
+        }
+
+        .tile{
+            background-color: #ffffff;
+            width: 25%;
+            margin: 10px;
+        }
+
+        .tile:hover{
+            transform: scale(1.2);
+        }
+
+        canvas{
+            image-rendering: pixelated; image-rendering: crisp-edges;
+        }
+
+        .notification{
+            width: 85px;
+            border-radius: 10px;
+            background-color: #ffffff;
+            color: #1d0435;
+        }
+    </style>
+
+    
+    <div class="editorHolder" id="gameStuffHolder">
+        <canvas width="190" height="190" id="mainCanvas" style=" background-color: /*aquamarine*/ #c1accb; grid-area: main; height: 100%;"></canvas>
+        <div id="levelSelect" style="grid-area: mapSelect; display: flex; flex-direction: column; align-items: center; min-width: 100px;">
+            <div>
+                <button onclick="new function() { hideMainLayer = !hideMainLayer }">hide main layer Toggle</button>
+                <button onclick="new function() { apply2background = !apply2background }">What Layer To Place Too Toggle</button>
+            </div>
+            <button onclick="changeArea(AreaAtlas.LabArea.WakeUp01)">WakeUp01</button>
+            <button onclick="changeArea(AreaAtlas.LabArea['1afterWakeUp'])">1afterWakeUp</button>
+            <button onclick="changeArea(AreaAtlas.LabArea.ToJumpGet)">ToJumpGet</button>
+            <button onclick="changeArea(AreaAtlas.LabArea.JumpGet)">JumpGet</button>
+            <button onclick="changeArea(AreaAtlas.LabArea.JumpGetP2)">JumpGetP2</button>
+            <button onclick="changeArea(AreaAtlas.LabArea.WallKickIntro.introRoom)">WallKickIntro : introRoom</button>
+            <button onclick="changeArea(AreaAtlas.LabArea.WallKickIntro.longFall)">WallKickIntro : longFall</button>
+            <button onclick="changeArea(AreaAtlas.LabArea.WallKickIntro.longFallCatch)">WallKickIntro : longFallCatch</button>
+            <button onclick="changeArea(AreaAtlas.LabArea.WallKickIntro.WallKickGet)">WallKickIntro : WallKickGet</button>
+            <button onclick="changeArea(AreaAtlas.LabArea.WallKickIntro.WallKickTutorial)">WallKickIntro : WallKickTutorial</button>
+            <button onclick="changeArea(AreaAtlas.LabArea.WallKickIntro.WallKickChallange)">WallKickIntro : WallKickChallange</button>
+        </div>
+
+        <div style="grid-area: tiles; overflow-y: scroll;">
+            <button onclick="reloadTiles()">ReloadTiles</button>
+            <div id="tileHolder">
+                <button>apple</button>
+            </div>
+        </div>
+
+        <div style="grid-area: entities">entities</div>
+        
+        <div style="width: 100px;" id="notificationHolder"></div>
+
+    </div>
+    <pre id="dataHolder"></pre>
+    <script src="math2.js"></script>
+    <script src="classes.js"></script>
+    <script src="data.js"></script>
+    <script src="setup.js"></script>
+    <script src="functions.js"></script>
+    <script>
+
+        let hideMainLayer = false;
+        let currentTileKey = " ";
+        let dataHolder = document.getElementById("dataHolder");
+        let apply2background = false;
+
+        /*let element = document.createElement("button");
+        element.innerText = AreaAtlasKeys[i];
+        element.onclick = changeArea(AreaAtlasKeys[i]);
+        levelSelectDiv.appendChild(element);*/
+
+        /*function drawLevel(useCamera = false, level = currentLevel){
+            for(let y = 0; y < level.layout.length; y++){
+                for(let x = 0; x < level.layout[y].length; x++){
+                    if(level.background !== undefined){
+                        let backgroundKey = level.key[level.background[y][x]];
+                        drawTileRegion(x * 19, y * 19, backgroundKey);
+                    }
+                    if(hideMainLayer === false){
+                        let levelKey = level.key[level.layout[y][x]];
+                        drawTileRegion(x * 19, y * 19, levelKey);
+                    }
+                }
+            }
+        }*/
+
+        function reloadTiles(){
+            let levelKeys = Object.keys(currentLevel.key);
+            let tileHolder = document.getElementById("tileHolder");
+            tileHolder.textContent = ''; // clears all child nodes
+            makeTileButton(tileHolder, " " );
+            for(let i = 0; i < levelKeys.length; i++ ){
+                makeTileButton(tileHolder, levelKeys[i]);
+            }
+        }
+
+        function makeTileButton(holder, key){
+            let localCanvasElement = document.createElement("canvas");
+            let localRegion = currentLevel.key[key];
+
+            if(Array.isArray(localRegion.region)){
+                localRegion.region = localRegion.region[0];
+            }
+
+            localCanvasElement.width = Math.max( localRegion.region.w, 4 );
+            localCanvasElement.height = Math.max( localRegion.region.h, 4 );
+            localCanvasElement.classList = "tile";
+
+            localCanvasElement.onclick = () => { currentTileKey = key; }
+
+            let localCTX = localCanvasElement.getContext('2d');
+            drawTileRegion(Camera.x, Camera.y, localRegion, localCTX);
+            holder.appendChild(localCanvasElement);
+        }
+
+        function isObject(x){
+            return typeof x === 'object' && !Array.isArray(x) && x !== null
+        }
+
+        function searchObjectForKeys(obj, currentArray = []){
+            let objKeys = Object.keys(obj);
+            let levelSelectDiv = document.getElementById("levelSelect");
+            let finalArray = currentArray;
+            for(let i = 0 ; i < objKeys.length; i++ ){
+                if(isObject(obj[objKeys[i]])){
+                    finalArray.push(...searchObjectForKeys(obj[objKeys[i]], finalArray));
+                }else{
+                    finalArray.push(objKeys[i]);
+                }
+            }
+            return finalArray;
+        }
+
+        function MasterUpdate(){
+
+            ctx.clearRect(0,0,canvasElement.width, canvasElement.height);
+            
+            Camera.real.x += ( -btn(ControlSchemes.Player1, "left") + btn(ControlSchemes.Player1, "right")) * Time.deltaTime * 0.1;
+            Camera.real.y += ( -btn(ControlSchemes.Player1, "up") + key("KeyS")) * Time.deltaTime * 0.1;
+            
+
+            Camera.real.x = ExtraMath.clamp(Camera.real.x, 0, currentLevel.layout[0].length * 19 - 19 * 10);
+            Camera.real.y = ExtraMath.clamp(Camera.real.y, 0, currentLevel.layout.length * 19 - 19 * 10);
+
+            if(currentLevel.backdropEntities !== undefined){
+                for(let i = 0; i < currentLevel.backdropEntities.length; i++){
+                    currentLevel.backdropEntities[i].tick();
+                }
+            }
+
+            drawTileRegion(Math.floor((mouse.x + Camera.x) / 19) * 19, Math.floor((mouse.y + Camera.y) / 19) * 19, currentLevel.key[currentTileKey]);
+            if(mouse[0] === true){
+                if(apply2background){
+                    setBackgroundTile(Math.floor((mouse.x + Camera.x) / 19), Math.floor((mouse.y + Camera.y) / 19), currentTileKey)
+                }else{
+                    setTile(Math.floor((mouse.x + Camera.x) / 19), Math.floor((mouse.y + Camera.y) / 19), currentTileKey);
+                }
+
+                dataHolder.innerText = JSON.stringify(( hideMainLayer ? currentLevel.background : currentLevel.layout), "", " ");
+            }
+
+            drawLevel();
+            //Players[1].tick();
+            
+            //player.draw((key("Space") === 1 ? "run" : "idle"));
+
+            if(currentLevel.entities !== undefined){
+                for(let i = 0; i < currentLevel.entities.length; i++){
+                    currentLevel.entities[i].tick();
+                }
+            }
+
+            for(let i = 0; i < particleList.length; i++){ // TODO : Fix the particle deletion, perhaps look at the "missed beat" game
+                particleList[i].tick();
+                particleList[i].draw();
+                if(particleList[i].age > particleList[i].lifetime){
+                    particleList.splice(i, 1);
+                }
+                console.log(particleList[i]);
+            }
+
+            //worldArrow(player2.x + 8, player2.y + 8, 95, 95, "#f0f", "#af2");
+
+            if(devToolsEnabled){
+                ctx.fillStyle = "#fff";
+                ctx.strokeStyle = "#fff";
+                let rounded = {x : Math.floor((mouse.x + Camera.real.x) / 19) * 19, y : Math.floor((mouse.y + Camera.real.y) / 19) * 19};
+                ctx.strokeRect(rounded.x - Camera.x, rounded.y - Camera.y - 1, 19, 19);
+                if(key("ShiftLeft")){
+                    ctx.fillRect(rounded.x - Camera.x, rounded.y - Camera.y, 4, 4);
+                    ctx.fillText(`${rounded.x}, ${rounded.y}`, rounded.x - Camera.real.x, rounded.y - Camera.real.y + 19);
+                }else{
+                    ctx.fillText(`${mouse.x + Camera.x}, ${mouse.y + Camera.y}`, mouse.x, mouse.y);
+                }
+            }
+
+            // Backdrop Paralax Effect
+            canvasElement.style.backgroundPosition = `${ Camera.real.x * -0.5 }px ${ Camera.real.y * -0.5 }px`;
+            
+            //BasicAreaChecks.inBox(19 * 14.5, 19 * 6.5, Players[0].x, Players[0].y, 3, 7)
+            ctx.fillText(Math.round(1000 / Time.deltaTime), 0, 190);
+            
+            
+        }
+
+        function createNotification(content, lifetime = 2000 ){
+
+            let localElement = document.createElement("div");
+            let holder = document.getElementById("notificationHolder")
+
+            localElement.innerHTML = content;
+
+            localElement.classList = "notification";
+
+            let elementInDom = holder.appendChild(localElement);
+            
+            setTimeout( () => {
+                elementInDom.remove();
+            }, lifetime)
+
+        }
+    </script>
+</body>
+</html>
