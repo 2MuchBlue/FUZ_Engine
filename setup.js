@@ -95,6 +95,7 @@ const rad2deg = 180 / Math.PI;
     document.addEventListener('keyup', function(e){
         keys[e.code] = false;
         keysReleaseTime[e.code] = Time.now;
+        onAnyKeyUp(e);
     });
 
     function key(keyCode){

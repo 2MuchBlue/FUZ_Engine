@@ -3,6 +3,7 @@ function start(){
 
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
+    ctx.font = `bold 19px monogram`;
     //ctx.globalCompositeOperation = "lighter";
 
     changeArea(AreaAtlas.test03);
@@ -96,6 +97,10 @@ function changeArea(level, x = -1, y = -1){
 
 function gameUpdate(){
     ctx.clearRect(0,0,canvasElement.width, canvasElement.height);
+    while(controlSeq.length > 64){
+        controlSeq = controlSeq.slice(-64);
+    }
+
     //player.real.x += ( -btn(ControlSchemes.Player1, "left") + btn(ControlSchemes.Player1, "right")) * Time.deltaTime * 0.1;
     //player.real.y += ( -btn(ControlSchemes.Player1, "up") + btn(ControlSchemes.Player1, "down")) * Time.deltaTime * 0.1;
     
@@ -120,24 +125,23 @@ function gameUpdate(){
     //console.log(movementVec.x, movementVec.y);
     Camera.real.x += movementVec.x * Time.deltaTime * 0.05;
     Camera.real.z += movementVec.y * Time.deltaTime * 0.05;
-    ctx.fillText(Camera.rotation.toString(), 64, 64);
-    loadedBlocks[loadedBlocks.length - 1] = new Block(Camera.x, Camera.y, Camera.z, false, TileAtlas.testElements.cube);
-
+    //loadedBlocks[loadedBlocks.length - 1] = new Block(Camera.x, Camera.y, Camera.z, false, TileAtlas.testElements.cube);
+    
     if(!mouse[0] && key("KeyA") + key("KeyD") === 0){
         //Camera.rotation = Camera.step * ;
         Camera.rotation += ( Math.round(Camera.step * 90) - Camera.rotation) * 0.01 * Time.deltaTime;
     }else{
         Camera.step = Math.round(Camera.rotation / 90);
     }
-
-
+    
+    
     drawLoadedBlocks();
     //drawLevel(-Camera.x, -Camera.y, currentLevel, true);
-
+    
     if(key("Space") === 1){
         particleList.push(new BasicParticle(Players[0].x + 9.5, Players[0].y + 9.5, (Math.random() - 0.5) * 6, Math.random() * 3, 1000, ParticleAtlas.effects.green));
     }
-
+    
     for(let i = 0; i < particleList.length; i++){ // TODO : Fix the particle deletion, perhaps look at the "missed beat" game
         particleList[i].tick();
         particleList[i].draw();
@@ -146,10 +150,13 @@ function gameUpdate(){
         }
         //console.log(particleList[i]);
     }
-
+    
     //worldArrow(player2.x + 8, player2.y + 8, 95, 95, "#f0f", "#af2");
-
+    
     if(devToolsEnabled){
+        ctx.fillText(Camera.rotation.toString(), 64, 64);
+        ctx.fillText(`Camera: ${Camera.x}, ${Camera.y}, ${Camera.z}`, 16, 190);
+        ctx.fillText(controlSeq, 0, 180, 190);
         ctx.fillStyle = "#fff";
         if(key("ShiftLeft")){
             let rounded = {x : Math.floor((mouse.x + Camera.real.x) / 19) * 19, y : Math.floor((mouse.y + Camera.real.y) / 19) * 19};
@@ -160,7 +167,6 @@ function gameUpdate(){
         }
     }
 
-    ctx.fillText(`Camera: ${Camera.x}, ${Camera.y}, ${Camera.z}`, 16, 190);
 
     // Backdrop Paralax Effect
     canvasElement.style.backgroundPosition = `${ Camera.real.x * -0.5 }px ${ Camera.real.y * -0.5 }px`;
@@ -171,9 +177,25 @@ function gameUpdate(){
 function onAnyKeyDown(){
     if(key("KeyQ")){
         Camera.step -= 1;
+        controlSeq = controlSeq + "LT";
     }
     if(key("KeyE")){
         Camera.step += 1;
+        controlSeq = controlSeq + "RT";
+    }
+}
+function onAnyKeyUp(e){
+    if(e.code === "KeyA"){
+        controlSeq = controlSeq + "L";
+    }
+    if(e.code === "KeyD"){
+        controlSeq = controlSeq + "R";
+    }
+    if(e.code === "KeyW"){
+        controlSeq = controlSeq + "U";
+    }
+    if(e.code === "KeyS"){
+        controlSeq = controlSeq + "D";
     }
 }
 
@@ -231,6 +253,12 @@ function sortLoadedBlocks(){
 function drawLoadedBlocks(){
     let sortedBlocks = sortLoadedBlocks();
 
+    if(currentLevel.entities !== undefined){
+        for(let i = 0; i < currentLevel.entities.length; i++){
+            currentLevel.entities[i].tick();
+        }
+    }
+
     for(let i = 0; i < sortedBlocks.length; i++){
         /*if(sortedBlocks[i].camSpace.y > mouse.y){
             return;
@@ -238,7 +266,7 @@ function drawLoadedBlocks(){
         //ctx.fillStyle = `rgb(${sortedBlocks[i].camSpace.y}, ${sortedBlocks[i].camSpace.y}, ${sortedBlocks[i].camSpace.y}, 0.5)`;
         drawTileRegion(
             Math.round(sortedBlocks[i].camSpace.x + canvasHalfWidth),
-            Math.round(sortedBlocks[i].y + canvasHalfHeight),
+            Math.round(sortedBlocks[i].y - Camera.y + canvasHalfHeight),
             sortedBlocks[i].sprite,
             ctx,
             false

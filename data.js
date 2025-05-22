@@ -2,6 +2,7 @@
 let currentLevel;
 let loadedBlocks = [];
 let tempCollison = [];
+let controlSeq = "";
 
 const devToolsEnabled = true;
 
@@ -388,6 +389,11 @@ const keySets = {
         "@" : {
             "region" : new Region(38, 152),
             "solid" : true
+        },
+
+        "C" : {
+            "region" : new Region(228, 190, 19, 19*2),
+            "solid" : false
         }
     },
 
@@ -494,8 +500,14 @@ const AreaAtlas = {
             -1,  0,  1, "2",
              0,  0,  1, "2",
              1,  0,  1, "2",
-             0,  1,  0, "2",
+             0,  1,  0, "0",
+             0.5,  -2, 1, "C",
              1,  0,  1, "2",
+        ],
+        "entities" : [
+            new TetrominoCodeHandler( () => {
+                console.log("you got it 2!!!!!");
+            }, "LLTLRRTDULT" )
         ]
     }
 }

@@ -884,3 +884,19 @@ class Block { // y is up
         return Math2.rot( this.real.x - Camera.real.x, this.real.z - Camera.real.z, Camera.rotation );
     }
 }
+
+class TetrominoCodeHandler extends EntityClass{
+    constructor(onTrigger = () => {console.log("Got The Code! Good On Ya!");}, code = "RTRTLTRTRTLTLTLT"){
+        super(0, 0, TetrominoCodeHandler );
+        this.code = code;
+        this.triggered = false;
+        this.onTrigger = onTrigger;
+    }
+
+    tick(){
+        if( !this.triggered && controlSeq.includes(this.code) ){
+            this.triggered = true;
+            this.onTrigger();
+        }
+    }
+}
